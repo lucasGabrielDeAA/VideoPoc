@@ -1,9 +1,5 @@
-import React, { useRef, useState, useEffect, useCallback } from 'react'
-import {
-  SafeAreaView,
-  StyleSheet,
-  ActivityIndicator
-} from 'react-native'
+import React, {useRef, useState, useEffect, useCallback} from 'react'
+import {SafeAreaView, StyleSheet, ActivityIndicator} from 'react-native'
 import Video from 'react-native-video'
 import axios from 'axios'
 
@@ -21,10 +17,14 @@ const App = () => {
     try {
       setIsLoading(true)
 
-      const { data: { video, request } } = await axios.get(`https://player.vimeo.com/video/${VIMEO_ID}/config`)
+      const {
+        data: {video, request},
+      } = await axios.get(`https://player.vimeo.com/video/${VIMEO_ID}/config`)
 
       setVideo(video)
-      setVideoUrl(request?.files?.hls?.cdns[request?.files?.hls?.default_cdn]?.url)
+      setVideoUrl(
+        request?.files?.hls?.cdns[request?.files?.hls?.default_cdn]?.url,
+      )
       setThumnbail(video?.thumbs['640'])
     } catch (error) {
       console.log(error)
@@ -34,7 +34,7 @@ const App = () => {
   }
 
   useEffect(() => {
-    fetchVideo()
+    fetchVideo();
   }, [])
 
   return (
@@ -49,12 +49,12 @@ const App = () => {
           fullscreenOrientation="landscape"
           ref={videoRef}
           style={styles.player}
-          source={{ uri: videoUrl }}
-          onBuffer={() => console.log("Buffering")}
-          onLoad={() => console.log("On load end")}
-          onLoadStart={() => console.log("On load start")}
-          onLoadEnd={() => console.log("On load end")}
-          onError={error => console.log(error)}
+          source={{uri: videoUrl}}
+          onBuffer={() => console.log('Buffering')}
+          onLoad={() => console.log('On load end')}
+          onLoadStart={() => console.log('On load start')}
+          onLoadEnd={() => console.log('On load end')}
+          onError={(error) => console.log(error)}
         />
       )}
     </SafeAreaView>
@@ -63,9 +63,9 @@ const App = () => {
 
 const styles = StyleSheet.create({
   player: {
-    height: "100%",
-    width: "100%"
+    height: '100%',
+    width: '100%',
   },
-});
+})
 
 export default App;
