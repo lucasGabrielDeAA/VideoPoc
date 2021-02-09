@@ -34,7 +34,7 @@ const App = () => {
   }
 
   useEffect(() => {
-    fetchVideo();
+    fetchVideo()
   }, [])
 
   return (
@@ -68,4 +68,4 @@ const styles = StyleSheet.create({
   },
 })
 
-export default App;
+export default App
