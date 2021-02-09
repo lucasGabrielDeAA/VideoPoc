@@ -7,7 +7,8 @@
     "ios": "react-native run-ios",
     "start": "react-native start",
     "test": "jest",
-    "lint": "eslint ."
+    "lint": "eslint .",
+    "pod:install": "cd ios && pod install && cd .."
   },
   "dependencies": {
     "axios": "^0.21.1",

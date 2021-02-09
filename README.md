@@ -4,7 +4,13 @@
 
 ```
   git clone https://github.com/lucasGabrielDeAA/VideoPoc.git && cd VideoPoc
-  yarn && yarn android
+  yarn
+  yarn pod:install - Only for IOS's environment
 ```
 
-Still missing some settings for ios's environment
+## Running
+
+```
+  yarn android - For Android usage
+  yarn ios - For IOs usage
+```
