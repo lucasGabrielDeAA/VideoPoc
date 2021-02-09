@@ -1,7 +1,16 @@
-import React, {useRef, useState, useEffect, useCallback} from 'react'
-import {SafeAreaView, StyleSheet, ActivityIndicator} from 'react-native'
+import React, { useRef, useState, useEffect, useCallback } from 'react'
+import {
+  View,
+  SafeAreaView,
+  StatusBar,
+  StyleSheet,
+  ActivityIndicator,
+  TouchableOpacity,
+  Text
+} from 'react-native'
 import Video from 'react-native-video'
 import axios from 'axios'
+import { downloadFile, DocumentDirectoryPath } from 'react-native-fs'
 
 const VIMEO_ID = '179859217'
 
@@ -9,63 +18,102 @@ const App = () => {
   const videoRef = useRef(null)
 
   const [video, setVideo] = useState(null)
-  const [videoUrl, setVideoUrl] = useState(null)
+  const [videoUri, setVideoUri] = useState(null)
+  const [videoUrlForDownload, setVideoUrlForDownload] = useState(null)
   const [thumbnail, setThumnbail] = useState(null)
   const [isLoading, setIsLoading] = useState(false)
 
-  async function fetchVideo() {
+  const fetchVideo = async () => {
     try {
       setIsLoading(true)
 
-      const {
-        data: {video, request},
-      } = await axios.get(`https://player.vimeo.com/video/${VIMEO_ID}/config`)
+      const { data } = await axios.get(`https://player.vimeo.com/video/${VIMEO_ID}/config`)
+      const { video, request } = data
 
       setVideo(video)
-      setVideoUrl(
-        request?.files?.hls?.cdns[request?.files?.hls?.default_cdn]?.url,
-      )
+      setVideoUri(request?.files?.hls?.cdns[request?.files?.hls?.default_cdn]?.url)
+      setVideoUrlForDownload(request?.files?.hls?.captions)
       setThumnbail(video?.thumbs['640'])
+      setIsLoading(false)
     } catch (error) {
       console.log(error)
-    } finally {
-      setIsLoading(false)
     }
   }
+
+  const downloadVideo = useCallback(async () => {
+    const fileName = `${video.title.split(' ').join('_')}.${videoUrlForDownload.split('.').pop()}`
+
+    const config = {
+      fromUrl: videoUri,
+      toFile: `${DocumentDirectoryPath}/${fileName}`
+    }
+
+    downloadFile(config)
+      .promise.then(response => console.log(response))
+      .catch(err => console.log(err))
+  }, [videoUrlForDownload, videoUri, video])
 
   useEffect(() => {
     fetchVideo()
   }, [])
 
   return (
-    <SafeAreaView>
-      {isLoading ? (
-        <ActivityIndicator size="small" color="#ddd" />
-      ) : (
-        <Video
-          startInLoadingState
-          controls
-          fullscreen
-          fullscreenOrientation="landscape"
-          ref={videoRef}
-          style={styles.player}
-          source={{uri: videoUrl}}
-          onBuffer={() => console.log('Buffering')}
-          onLoad={() => console.log('On load end')}
-          onLoadStart={() => console.log('On load start')}
-          onLoadEnd={() => console.log('On load end')}
-          onError={(error) => console.log(error)}
-        />
-      )}
-    </SafeAreaView>
+    <>
+      <StatusBar barStyle='light-content' />
+
+      <SafeAreaView>
+        <View style={styles.container}>
+          {!isLoading && (
+            <View style={styles.videoContainer}>
+              <TouchableOpacity style={styles.downloadButton} onPress={() => downloadVideo()}>
+                <Text style={styles.downloadbuttonLabel}>Download</Text>
+              </TouchableOpacity>
+
+              <Video
+                startInLoadingState
+                controls
+                ref={videoRef}
+                style={styles.player}
+                source={{ uri: videoUri }}
+                onBuffer={() => console.log('Buffering')}
+                onLoad={() => console.log('On load end')}
+                onLoadStart={() => console.log('On load start')}
+                onLoadEnd={() => console.log('On load end')}
+                onError={error => console.log(error)}
+              />
+            </View>
+          )}
+        </View>
+      </SafeAreaView>
+    </>
   )
 }
 
 const styles = StyleSheet.create({
+  container: {
+    backgroundColor: '#fff'
+  },
+  videoContainer: {
+    alignItems: 'center',
+    flexDirection: 'column',
+    paddingVertical: 16
+  },
   player: {
     height: '100%',
-    width: '100%',
+    width: '100%'
   },
+  downloadButton: {
+    alignItems: 'center',
+    backgroundColor: '#000',
+    borderRadius: 5,
+    marginBottom: 16,
+    paddingHorizontal: 16,
+    paddingVertical: 8
+  },
+  downloadbuttonLabel: {
+    color: '#fff',
+    fontWeight: '700'
+  }
 })
 
 export default App
