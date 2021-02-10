@@ -6,20 +6,20 @@ import {
   StyleSheet,
   ActivityIndicator,
   TouchableOpacity,
-  Text
+  Text,
+  PermissionsAndroid
 } from 'react-native'
 import Video from 'react-native-video'
 import axios from 'axios'
-import { downloadFile, DocumentDirectoryPath, writeFile } from 'react-native-fs'
+import { downloadFile, DownloadDirectoryPath } from 'react-native-fs'
 
-const VIMEO_ID = '179859217'
+const VIMEO_ID = '510404006'
 
 const App = () => {
   const videoRef = useRef(null)
 
   const [video, setVideo] = useState(null)
   const [videoUri, setVideoUri] = useState(null)
-  const [videoUrlForDownload, setVideoUrlForDownload] = useState(null)
   const [thumbnail, setThumnbail] = useState(null)
   const [isLoading, setIsLoading] = useState(false)
 
@@ -31,9 +31,8 @@ const App = () => {
       const { video, request } = data
 
       setVideo(video)
-      setVideoUri(request?.files?.hls?.cdns[request?.files?.hls?.default_cdn]?.url)
-      setVideoUrlForDownload(request?.files?.hls?.captions)
       setThumnbail(video?.thumbs['640'])
+      setVideoUri(request?.files?.hls?.cdns[request?.files?.hls?.default_cdn]?.url)
       setIsLoading(false)
     } catch (error) {
       console.log(error)
@@ -42,20 +41,38 @@ const App = () => {
 
   const downloadVideo = useCallback(async () => {
     try {
-      const fileName = `${video.title.split(' ').join('_')}.${videoUrlForDownload.split('.').pop()}`
+      let downloadEnabled = false
 
-      const config = {
-        fromUrl: videoUri,
-        toFile: `${DocumentDirectoryPath}/${fileName}`
+      if (Platform.OS === 'android') {
+        const permissions = await PermissionsAndroid.requestMultiple([
+          PermissionsAndroid.PERMISSIONS.WRITE_EXTERNAL_STORAGE
+        ])
+        downloadEnabled =
+          permissions['android.permission.WRITE_EXTERNAL_STORAGE'] ===
+          PermissionsAndroid.RESULTS.GRANTED
+      } else {
+        downloadEnabled = true
       }
 
-      const response = await downloadFile(config).promise
+      if (downloadEnabled) {
+        const fileName = `${video.title.split(' ').join('_')}.${videoUri
+          .split('?')[0]
+          .split('.')
+          .pop()}`
 
-      console.log(response)
+        const config = {
+          fromUrl: videoUri,
+          toFile: `${DownloadDirectoryPath}/${fileName}`
+        }
+
+        const response = await downloadFile(config).promise
+
+        console.log(response)
+      }
     } catch (error) {
       console.log(error)
     }
-  }, [videoUrlForDownload, videoUri, video])
+  }, [videoUri, video])
 
   useEffect(() => {
     fetchVideo()
@@ -76,6 +93,7 @@ const App = () => {
               <Video
                 startInLoadingState
                 controls
+                muted
                 ref={videoRef}
                 style={styles.player}
                 source={{ uri: videoUri }}
