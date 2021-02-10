@@ -10,7 +10,7 @@ import {
 } from 'react-native'
 import Video from 'react-native-video'
 import axios from 'axios'
-import { downloadFile, DocumentDirectoryPath } from 'react-native-fs'
+import { downloadFile, DocumentDirectoryPath, writeFile } from 'react-native-fs'
 
 const VIMEO_ID = '179859217'
 
@@ -41,16 +41,20 @@ const App = () => {
   }
 
   const downloadVideo = useCallback(async () => {
-    const fileName = `${video.title.split(' ').join('_')}.${videoUrlForDownload.split('.').pop()}`
+    try {
+      const fileName = `${video.title.split(' ').join('_')}.${videoUrlForDownload.split('.').pop()}`
 
-    const config = {
-      fromUrl: videoUri,
-      toFile: `${DocumentDirectoryPath}/${fileName}`
+      const config = {
+        fromUrl: videoUri,
+        toFile: `${DocumentDirectoryPath}/${fileName}`
+      }
+
+      const response = await downloadFile(config).promise
+
+      console.log(response)
+    } catch (error) {
+      console.log(error)
     }
-
-    downloadFile(config)
-      .promise.then(response => console.log(response))
-      .catch(err => console.log(err))
   }, [videoUrlForDownload, videoUri, video])
 
   useEffect(() => {
@@ -65,7 +69,7 @@ const App = () => {
         <View style={styles.container}>
           {!isLoading && (
             <View style={styles.videoContainer}>
-              <TouchableOpacity style={styles.downloadButton} onPress={() => downloadVideo()}>
+              <TouchableOpacity style={styles.downloadButton} onPress={downloadVideo}>
                 <Text style={styles.downloadbuttonLabel}>Download</Text>
               </TouchableOpacity>
 
