@@ -7,11 +7,13 @@ import {
   ActivityIndicator,
   TouchableOpacity,
   Text,
-  PermissionsAndroid
+  PermissionsAndroid,
+  Platform
 } from 'react-native'
 import Video from 'react-native-video'
 import axios from 'axios'
 import { downloadFile, DownloadDirectoryPath } from 'react-native-fs'
+import RNFetchBlob from 'rn-fetch-blob'
 
 const VIMEO_ID = '510404006'
 
@@ -19,7 +21,7 @@ const App = () => {
   const videoRef = useRef(null)
 
   const [video, setVideo] = useState(null)
-  const [videoUri, setVideoUri] = useState(null)
+  const [videoURL, setVideoURL] = useState(null)
   const [thumbnail, setThumnbail] = useState(null)
   const [isLoading, setIsLoading] = useState(false)
 
@@ -27,15 +29,28 @@ const App = () => {
     try {
       setIsLoading(true)
 
-      const { data } = await axios.get(`https://player.vimeo.com/video/${VIMEO_ID}/config`)
-      const { video, request } = data
+      // Trying to authenticate via vimeo API
+      const response = await axios.post('https://api.vimeo.com/oauth/authorize/client', {
+        grant_type: 'client_credentials',
+        scope: 'public'
+      })
 
-      setVideo(video)
-      setThumnbail(video?.thumbs['640'])
-      setVideoUri(request?.files?.hls?.cdns[request?.files?.hls?.default_cdn]?.url)
-      setIsLoading(false)
+      console.log(response)
+
+      // const response = await axios.get(`https://api.vimeo.com/videos/${VIMEO_ID}`)
+      // console.log(response)
+
+      // const { data } = await axios.get(`https://player.vimeo.com/video/${VIMEO_ID}/config`)
+      // const { video, request } = data
+
+      // console.log(request)
+
+      // setVideo(video)
+      // setThumnbail(video?.thumbs['640'])
+      // setVideoURL(request?.files?.hls?.cdns[request?.files?.hls?.default_cdn]?.url)
+      // setIsLoading(false)
     } catch (error) {
-      console.log(error)
+      console.log(`Error ${error}`)
     }
   }
 
@@ -55,24 +70,47 @@ const App = () => {
       }
 
       if (downloadEnabled) {
-        const fileName = `${video.title.split(' ').join('_')}.${videoUri
-          .split('?')[0]
-          .split('.')
-          .pop()}`
+        const name = `${video.title.split(' ').join('_')}`
+        const fileExtension = `${videoURL.split('?')[0].split('.').pop()}`
+        const fileName = `${name}.mp4`
 
-        const config = {
-          fromUrl: videoUri,
-          toFile: `${DownloadDirectoryPath}/${fileName}`
-        }
+        const options = Platform.select({
+          android: {
+            addAndroidDownloads: {
+              useDownloadManager: true,
+              notification: true,
+              mime: 'video/mp4',
+              description: `${name}`,
+              path: `${RNFetchBlob.fs.dirs.DownloadDir}/${fileName}`
+            },
+            fileCache: true
+          },
+          ios: {
+            fileCache: true,
+            path: `${RNFetchBlob.fs.dirs.DocumentDir}/${fileName}`
+          }
+        })
 
-        const response = await downloadFile(config).promise
+        RNFetchBlob.config(options)
+          .fetch('GET', videoURL)
+          .then(response => {
+            if (Platform.OS === 'ios') {
+              RNFetchBlob.ios.openDocument(response.data)
+            }
+          })
+          .catch(error => console.log(error))
 
-        console.log(response)
+        // const config = {
+        //   fromUrl: videoURL,
+        //   toFile: `${DownloadDirectoryPath}/${fileName}`
+        // }
+
+        // const response = await downloadFile(config).promise
       }
     } catch (error) {
       console.log(error)
     }
-  }, [videoUri, video])
+  }, [videoURL, video])
 
   useEffect(() => {
     fetchVideo()
@@ -96,7 +134,7 @@ const App = () => {
                 muted
                 ref={videoRef}
                 style={styles.player}
-                source={{ uri: videoUri }}
+                source={{ uri: videoURL }}
                 onBuffer={() => console.log('Buffering')}
                 onLoad={() => console.log('On load end')}
                 onLoadStart={() => console.log('On load start')}
