@@ -1,4 +1,4 @@
-import React, { useRef, useState, useEffect, useCallback } from 'react'
+import React, { useRef, useState, useEffect } from 'react'
 import {
   View,
   SafeAreaView,
@@ -12,10 +12,11 @@ import {
 } from 'react-native'
 import Video from 'react-native-video'
 import axios from 'axios'
-import { downloadFile, DownloadDirectoryPath } from 'react-native-fs'
+import { DocumentDirectoryPath, DownloadDirectoryPath, mkdir, exists } from 'react-native-fs'
 import RNFetchBlob from 'rn-fetch-blob'
 
 const VIMEO_ID = '510404006'
+const DIRECTORY_NAME = '.scaffold'
 
 const App = () => {
   const videoRef = useRef(null)
@@ -25,10 +26,8 @@ const App = () => {
   const [thumbnail, setThumnbail] = useState(null)
   const [isLoading, setIsLoading] = useState(false)
 
-  const fetchVideo = async () => {
+  const authenticate = async () => {
     try {
-      setIsLoading(true)
-
       // Trying to authenticate via vimeo API
       const response = await axios.post('https://api.vimeo.com/oauth/authorize/client', {
         grant_type: 'client_credentials',
@@ -36,89 +35,121 @@ const App = () => {
       })
 
       console.log(response)
+    } catch (error) {
+      console.log(error)
+    }
+  }
+
+  const fetchVideo = async () => {
+    try {
+      setIsLoading(true)
 
       // const response = await axios.get(`https://api.vimeo.com/videos/${VIMEO_ID}`)
       // console.log(response)
 
-      // const { data } = await axios.get(`https://player.vimeo.com/video/${VIMEO_ID}/config`)
-      // const { video, request } = data
+      const { data } = await axios.get(`https://player.vimeo.com/video/${VIMEO_ID}/config`)
+      const { video, request } = data
 
-      // console.log(request)
+      console.log(request)
 
-      // setVideo(video)
-      // setThumnbail(video?.thumbs['640'])
-      // setVideoURL(request?.files?.hls?.cdns[request?.files?.hls?.default_cdn]?.url)
-      // setIsLoading(false)
+      setVideo(video)
+      setThumnbail(video?.thumbs['640'])
+      setVideoURL(request?.files?.hls?.cdns[request?.files?.hls?.default_cdn]?.url)
+      setIsLoading(false)
     } catch (error) {
       console.log(`Error ${error}`)
     }
   }
 
-  const downloadVideo = useCallback(async () => {
+  const requestPermission = async (
+    permission = PermissionsAndroid.PERMISSIONS.WRITE_EXTERNAL_STORAGE
+  ) => {
     try {
-      let downloadEnabled = false
+      let permissionEnabled = false
 
       if (Platform.OS === 'android') {
-        const permissions = await PermissionsAndroid.requestMultiple([
-          PermissionsAndroid.PERMISSIONS.WRITE_EXTERNAL_STORAGE
-        ])
-        downloadEnabled =
-          permissions['android.permission.WRITE_EXTERNAL_STORAGE'] ===
-          PermissionsAndroid.RESULTS.GRANTED
+        const granted = await PermissionsAndroid.request(permission)
+        permissionEnabled = granted === PermissionsAndroid.RESULTS.GRANTED
       } else {
-        downloadEnabled = true
+        permissionEnabled = true
       }
 
-      if (downloadEnabled) {
-        const name = `${video.title.split(' ').join('_')}`
-        const fileExtension = `${videoURL.split('?')[0].split('.').pop()}`
-        const fileName = `${name}.mp4`
+      return permissionEnabled
+    } catch (error) {
+      console.log(error)
+    }
+  }
 
-        const options = Platform.select({
-          android: {
-            addAndroidDownloads: {
-              useDownloadManager: true,
-              notification: true,
-              mime: 'video/mp4',
-              description: `${name}`,
-              path: `${RNFetchBlob.fs.dirs.DownloadDir}/${fileName}`
-            },
-            fileCache: true
-          },
-          ios: {
-            fileCache: true,
-            path: `${RNFetchBlob.fs.dirs.DocumentDir}/${fileName}`
-          }
-        })
+  const makeDirectory = async () => {
+    try {
+      const path = `${
+        Platform.OS === 'android' ? DownloadDirectoryPath : DocumentDirectoryPath
+      }/${DIRECTORY_NAME}`
 
-        RNFetchBlob.config(options)
-          .fetch('GET', videoURL)
-          .then(response => {
-            if (Platform.OS === 'ios') {
-              RNFetchBlob.ios.openDocument(response.data)
-            }
-          })
-          .catch(error => console.log(error))
-
-        // const config = {
-        //   fromUrl: videoURL,
-        //   toFile: `${DownloadDirectoryPath}/${fileName}`
-        // }
-
-        // const response = await downloadFile(config).promise
+      if (!(await exists(path))) {
+        await mkdir(path)
       }
     } catch (error) {
       console.log(error)
     }
-  }, [videoURL, video])
+  }
+
+  const downloadVideo = async () => {
+    try {
+      await makeDirectory()
+
+      const name = `${video.title.split(' ').join('_')}`
+      const fileExtension = `${videoURL.split('?')[0].split('.').pop()}`
+      const fileName = `${name}.mp4`
+
+      const options = Platform.select({
+        android: {
+          addAndroidDownloads: {
+            useDownloadManager: true,
+            notification: true,
+            mime: 'video/mp4',
+            description: `${name}`,
+            path: `${DownloadDirectoryPath}/${DIRECTORY_NAME}/${fileName}`
+          },
+          fileCache: true
+        },
+        ios: {
+          fileCache: true,
+          path: `${DocumentDirectoryPath}/${DIRECTORY_NAME}/${fileName}`
+        }
+      })
+
+      RNFetchBlob.config(options)
+        .fetch('GET', videoURL)
+        .then(response => {
+          console.log(response)
+          if (Platform.OS === 'android') {
+            RNFetchBlob.android.actionViewIntent(response.path(), 'video/mp4')
+          }
+
+          if (Platform.OS === 'ios') {
+            RNFetchBlob.ios.openDocument(response.data)
+          }
+        })
+        .catch(error => console.log(error))
+    } catch (error) {
+      console.log(error)
+    }
+  }
 
   useEffect(() => {
-    fetchVideo()
+    async function loadContent() {
+      await requestPermission()
+      fetchVideo()
+    }
+
+    loadContent()
+    // authenticate()
   }, [])
 
   return (
     <>
-      <StatusBar barStyle='light-content' />
+      <StatusBar barStyle='dark-content' backgroundColor='#fff' />
 
       <SafeAreaView>
         <View style={styles.container}>
@@ -159,8 +190,8 @@ const styles = StyleSheet.create({
     paddingVertical: 16
   },
   player: {
-    height: '100%',
-    width: '100%'
+    height: 250,
+    width: 350
   },
   downloadButton: {
     alignItems: 'center',
