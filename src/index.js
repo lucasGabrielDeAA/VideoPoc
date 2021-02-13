@@ -21,8 +21,7 @@ const DIRECTORY_NAME = '.scaffold'
 const App = () => {
   const videoRef = useRef(null)
 
-  const [video, setVideo] = useState(null)
-  const [videoURL, setVideoURL] = useState(null)
+  const [url, setUrl] = useState(null)
   const [thumbnail, setThumnbail] = useState(null)
   const [isLoading, setIsLoading] = useState(false)
 
@@ -44,17 +43,18 @@ const App = () => {
     try {
       setIsLoading(true)
 
+      // This request needs authentication to work
       // const response = await axios.get(`https://api.vimeo.com/videos/${VIMEO_ID}`)
       // console.log(response)
 
       const { data } = await axios.get(`https://player.vimeo.com/video/${VIMEO_ID}/config`)
-      const { video, request } = data
+      const { video, request, user } = data
 
-      console.log(request)
+      // The user's object contains informations about authentication, tokens, etc...
+      console.log(user)
 
-      setVideo(video)
-      setThumnbail(video?.thumbs['640'])
-      setVideoURL(request?.files?.hls?.cdns[request?.files?.hls?.default_cdn]?.url)
+      setThumnbail(video?.thumbs?.base)
+      setUrl(request?.files?.hls?.cdns[request?.files?.hls?.default_cdn]?.url)
       setIsLoading(false)
     } catch (error) {
       console.log(`Error ${error}`)
@@ -99,7 +99,7 @@ const App = () => {
       await makeDirectory()
 
       const name = `${video.title.split(' ').join('_')}`
-      const fileExtension = `${videoURL.split('?')[0].split('.').pop()}`
+      const fileExtension = `${url.split('?')[0].split('.').pop()}`
       const fileName = `${name}.mp4`
 
       const options = Platform.select({
@@ -120,7 +120,7 @@ const App = () => {
       })
 
       RNFetchBlob.config(options)
-        .fetch('GET', videoURL)
+        .fetch('GET', url)
         .then(response => {
           console.log(response)
           if (Platform.OS === 'android') {
@@ -165,7 +165,7 @@ const App = () => {
                 muted
                 ref={videoRef}
                 style={styles.player}
-                source={{ uri: videoURL }}
+                source={{ uri: url }}
                 onBuffer={() => console.log('Buffering')}
                 onLoad={() => console.log('On load end')}
                 onLoadStart={() => console.log('On load start')}
@@ -190,8 +190,8 @@ const styles = StyleSheet.create({
     paddingVertical: 16
   },
   player: {
-    height: 250,
-    width: 350
+    height: 200,
+    width: '100%'
   },
   downloadButton: {
     alignItems: 'center',
