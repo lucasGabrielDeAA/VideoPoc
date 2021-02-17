@@ -14,11 +14,14 @@ import { useNavigation } from '@react-navigation/native'
 import { VideoPlayer, Thumbnail } from 'src/components'
 
 const VIMEO_ID = '510404006'
+const DIRECTORY_NAME = '.scaffold'
 
 const Home = () => {
   const navigation = useNavigation()
 
-  const [videoUrl, setVideoUrl] = useState(null)
+  const [videoUrl, setVideoUrl] = useState('')
+  const [downloadUrl, setDownloadUrl] = useState('')
+  const [video, setVideo] = useState(null)
   const [isLoading, setIsLoading] = useState(true)
   const [thumbnail, setThumnbail] = useState(null)
 
@@ -49,9 +52,15 @@ const Home = () => {
       // The user's object contains informations about authentication, tokens, etc...
       // console.log(user)
 
+      // request?.files?.hls?.cdns[request?.files?.hls?.default_cdn]?.url
+
       setThumnbail(video?.thumbs['640'])
-      // request?.files?.hls?.cdns?.[data.request?.files?.hls?.default_cdn]?.url
-      setVideoUrl(request?.files?.hls?.cdns[request?.files?.hls?.default_cdn]?.url)
+      setVideo(video)
+      setDownloadUrl(request?.files?.progressive?.[0]?.url)
+      setVideoUrl(
+        request?.files?.hls?.cdns[request?.files?.hls?.default_cdn]?.url ||
+          request?.files?.progressive?.[0]?.url
+      )
     } catch (error) {
       console.log(`Error ${error}`)
     } finally {
@@ -97,7 +106,6 @@ const Home = () => {
       await makeDirectory()
 
       const name = `${video.title.split(' ').join('_')}`
-      const fileExtension = `${url.split('?')[0].split('.').pop()}`
       const fileName = `${name}.mp4`
 
       const options = Platform.select({
@@ -118,7 +126,7 @@ const Home = () => {
       })
 
       RNFetchBlob.config(options)
-        .fetch('GET', url)
+        .fetch('GET', downloadUrl)
         .then(response => {
           console.log(response)
           if (Platform.OS === 'android') {

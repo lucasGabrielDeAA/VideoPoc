@@ -7,8 +7,6 @@ import PropTypes from 'prop-types'
 
 const { width: screenWidth, height: screenHeight } = Dimensions.get('screen')
 
-const DIRECTORY_NAME = '.scaffold'
-
 const VideoPlayer = ({ url, ...props }) => {
   const [fullscreen, setFullscreen] = useState(false)
 
