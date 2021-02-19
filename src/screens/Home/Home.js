@@ -1,23 +1,28 @@
-import React, { useState, useEffect, useCallback } from 'react'
+import React, { useState, useEffect } from 'react'
 import {
   StyleSheet,
   TouchableOpacity,
   PermissionsAndroid,
   Platform,
-  ActivityIndicator
+  ActivityIndicator,
+  Linking
 } from 'react-native'
 import axios from 'axios'
 import { DocumentDirectoryPath, DownloadDirectoryPath, mkdir, exists } from 'react-native-fs'
 import RNFetchBlob from 'rn-fetch-blob'
 import { useNavigation } from '@react-navigation/native'
+import AsyncStorage from '@react-native-async-storage/async-storage'
 
 import { VideoPlayer, Thumbnail } from 'src/components'
 
-const VIMEO_ID = '510404006'
+import { fetchClient } from 'src/providers'
+
+const VIMEO_ID = '510404006' //Scaffold video
+// const VIMEO_ID = '514365095' // my own video
 const DIRECTORY_NAME = '.scaffold'
 
 const Home = () => {
-  const navigation = useNavigation()
+  const { push } = useNavigation()
 
   const [videoUrl, setVideoUrl] = useState('')
   const [downloadUrl, setDownloadUrl] = useState('')
@@ -27,13 +32,10 @@ const Home = () => {
 
   const authenticate = async () => {
     try {
-      // Trying to authenticate via vimeo API
-      const response = await axios.post('https://api.vimeo.com/oauth/authorize/client', {
-        grant_type: 'client_credentials',
-        scope: 'public'
-      })
+      // const access_token = '0b3eded54fe734c72e3e90e9df2d9b9c' // my onw access_token
+      const access_token = '254491c0898dea7edf6ae709b3246256' //scaffold access_token
 
-      console.log(response)
+      await AsyncStorage.setItem('@VideoPoc:VimeoToken', access_token)
     } catch (error) {
       console.log(error)
     }
@@ -41,18 +43,10 @@ const Home = () => {
 
   const fetchVideo = async () => {
     try {
-      // This request needs authentication to work
-      // const response = await axios.get(`https://api.vimeo.com/videos/${VIMEO_ID}`)
-      // console.log(response)
       setIsLoading(true)
 
       const { data } = await axios.get(`https://player.vimeo.com/video/${VIMEO_ID}/config`)
       const { video, request, user } = data
-
-      // The user's object contains informations about authentication, tokens, etc...
-      // console.log(user)
-
-      // request?.files?.hls?.cdns[request?.files?.hls?.default_cdn]?.url
 
       setThumnbail(video?.thumbs['640'])
       setVideo(video)
@@ -103,64 +97,63 @@ const Home = () => {
 
   const downloadVideo = async () => {
     try {
-      await makeDirectory()
+      const response = await fetchClient.get(`/videos/${VIMEO_ID}`)
+      console.log(response)
 
-      const name = `${video.title.split(' ').join('_')}`
-      const fileName = `${name}.mp4`
+      // await makeDirectory()
 
-      const options = Platform.select({
-        android: {
-          addAndroidDownloads: {
-            useDownloadManager: true,
-            notification: true,
-            mime: 'video/mp4',
-            description: `${name}`,
-            path: `${DownloadDirectoryPath}/${DIRECTORY_NAME}/${fileName}`
-          },
-          fileCache: true
-        },
-        ios: {
-          fileCache: true,
-          path: `${DocumentDirectoryPath}/${DIRECTORY_NAME}/${fileName}`
-        }
-      })
+      // const name = `${video.title.split(' ').join('_')}`
+      // const fileName = `${name}.mp4`
 
-      RNFetchBlob.config(options)
-        .fetch('GET', downloadUrl)
-        .then(response => {
-          console.log(response)
-          if (Platform.OS === 'android') {
-            RNFetchBlob.android.actionViewIntent(response.path(), 'video/mp4')
-          }
+      // const options = Platform.select({
+      //   android: {
+      //     addAndroidDownloads: {
+      //       useDownloadManager: true,
+      //       notification: true,
+      //       mime: 'video/mp4',
+      //       description: `${name}`,
+      //       path: `${DownloadDirectoryPath}/${DIRECTORY_NAME}/${fileName}`
+      //     },
+      //     fileCache: true
+      //   },
+      //   ios: {
+      //     fileCache: true,
+      //     path: `${DocumentDirectoryPath}/${DIRECTORY_NAME}/${fileName}`
+      //   }
+      // })
 
-          if (Platform.OS === 'ios') {
-            RNFetchBlob.ios.openDocument(response.data)
-          }
-        })
-        .catch(error => console.log(error))
+      // RNFetchBlob.config(options)
+      //   .fetch('GET', downloadUrl)
+      //   .then(response => {
+      //     console.log(response)
+      //     if (Platform.OS === 'android') {
+      //       RNFetchBlob.android.actionViewIntent(response.path(), 'video/mp4')
+      //     }
+
+      //     if (Platform.OS === 'ios') {
+      //       RNFetchBlob.ios.openDocument(response.data)
+      //     }
+      //   })
+      //   .catch(error => console.log(error))
     } catch (error) {
       console.log(error)
     }
   }
 
-  const handleNavigate = useCallback(() => {
-    navigation.push('Player', { url: videoUrl })
-  }, [navigation, videoUrl])
-
   useEffect(() => {
     async function loadContent() {
       await requestPermission()
+      await authenticate()
       fetchVideo()
     }
 
     loadContent()
-    // authenticate()
   }, [])
 
   return !isLoading ? (
     <Thumbnail
       backgroundImage={thumbnail}
-      mainAction={() => handleNavigate()}
+      mainAction={() => push('Player', { url: videoUrl })}
       secondAction={() => downloadVideo()}
     />
   ) : (
