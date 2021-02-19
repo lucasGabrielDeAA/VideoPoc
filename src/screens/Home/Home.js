@@ -17,8 +17,8 @@ import { VideoPlayer, Thumbnail } from 'src/components'
 
 import { fetchClient } from 'src/providers'
 
-const VIMEO_ID = '510404006' //Scaffold video
-// const VIMEO_ID = '514365095' // my own video
+// const VIMEO_ID = '510404006' //Scaffold video
+const VIMEO_ID = '514440032' // my own video
 const DIRECTORY_NAME = '.scaffold'
 
 const Home = () => {
@@ -32,8 +32,8 @@ const Home = () => {
 
   const authenticate = async () => {
     try {
-      // const access_token = '0b3eded54fe734c72e3e90e9df2d9b9c' // my onw access_token
-      const access_token = '254491c0898dea7edf6ae709b3246256' //scaffold access_token
+      const access_token = '39d88ef6affbcd4a261a7487787bec78' // my onw access_token
+      // const access_token = '67129ad799b211455b059f0e6282706c' //scaffold access_token
 
       await AsyncStorage.setItem('@VideoPoc:VimeoToken', access_token)
     } catch (error) {
@@ -98,43 +98,46 @@ const Home = () => {
   const downloadVideo = async () => {
     try {
       const response = await fetchClient.get(`/videos/${VIMEO_ID}`)
-      console.log(response)
 
-      // await makeDirectory()
+      const { files } = response
 
-      // const name = `${video.title.split(' ').join('_')}`
-      // const fileName = `${name}.mp4`
+      const url = files[1].link
 
-      // const options = Platform.select({
-      //   android: {
-      //     addAndroidDownloads: {
-      //       useDownloadManager: true,
-      //       notification: true,
-      //       mime: 'video/mp4',
-      //       description: `${name}`,
-      //       path: `${DownloadDirectoryPath}/${DIRECTORY_NAME}/${fileName}`
-      //     },
-      //     fileCache: true
-      //   },
-      //   ios: {
-      //     fileCache: true,
-      //     path: `${DocumentDirectoryPath}/${DIRECTORY_NAME}/${fileName}`
-      //   }
-      // })
+      await makeDirectory()
 
-      // RNFetchBlob.config(options)
-      //   .fetch('GET', downloadUrl)
-      //   .then(response => {
-      //     console.log(response)
-      //     if (Platform.OS === 'android') {
-      //       RNFetchBlob.android.actionViewIntent(response.path(), 'video/mp4')
-      //     }
+      const name = `${video.title.split(' ').join('_')}`
+      const fileName = `${name}.mp4`
 
-      //     if (Platform.OS === 'ios') {
-      //       RNFetchBlob.ios.openDocument(response.data)
-      //     }
-      //   })
-      //   .catch(error => console.log(error))
+      const options = Platform.select({
+        android: {
+          addAndroidDownloads: {
+            useDownloadManager: true,
+            notification: true,
+            mime: 'video/mp4',
+            description: `${name}`,
+            path: `${DownloadDirectoryPath}/${DIRECTORY_NAME}/${fileName}`
+          },
+          fileCache: true
+        },
+        ios: {
+          fileCache: true,
+          path: `${DocumentDirectoryPath}/${DIRECTORY_NAME}/${fileName}`
+        }
+      })
+
+      RNFetchBlob.config(options)
+        .fetch('GET', url)
+        .then(response => {
+          console.log(response)
+          if (Platform.OS === 'android') {
+            RNFetchBlob.android.actionViewIntent(response.path(), 'video/mp4')
+          }
+
+          if (Platform.OS === 'ios') {
+            RNFetchBlob.ios.openDocument(response.data)
+          }
+        })
+        .catch(error => console.log(error))
     } catch (error) {
       console.log(error)
     }
