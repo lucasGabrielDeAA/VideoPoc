@@ -12,13 +12,17 @@ import { DocumentDirectoryPath, DownloadDirectoryPath, mkdir, exists } from 'rea
 import RNFetchBlob from 'rn-fetch-blob'
 import { useNavigation } from '@react-navigation/native'
 import AsyncStorage from '@react-native-async-storage/async-storage'
+import { virgilCrypto } from 'react-native-virgil-crypto'
 
 import { VideoPlayer, Thumbnail } from 'src/components'
 
 import { fetchClient } from 'src/providers'
 
-// const VIMEO_ID = '510404006' //Scaffold video
-const VIMEO_ID = '514440032' // my own video
+import { generateKeys } from 'src/utils'
+
+import { ASYNC_STORAGE_PRIVATE_KEY, ASYNC_STORAGE_PUBLIC_KEY } from 'src/constants'
+
+const VIMEO_ID = '510404006' //Scaffold video
 const DIRECTORY_NAME = '.scaffold'
 
 const Home = () => {
@@ -29,11 +33,11 @@ const Home = () => {
   const [video, setVideo] = useState(null)
   const [isLoading, setIsLoading] = useState(true)
   const [thumbnail, setThumnbail] = useState(null)
+  const [publicKey, setPublicKey] = useState(null)
 
   const authenticate = async () => {
     try {
-      const access_token = '39d88ef6affbcd4a261a7487787bec78' // my onw access_token
-      // const access_token = '67129ad799b211455b059f0e6282706c' //scaffold access_token
+      const access_token = '67129ad799b211455b059f0e6282706c' //scaffold access_token
 
       await AsyncStorage.setItem('@VideoPoc:VimeoToken', access_token)
     } catch (error) {
@@ -97,16 +101,18 @@ const Home = () => {
 
   const downloadVideo = async () => {
     try {
-      const response = await fetchClient.get(`/videos/${VIMEO_ID}`)
+      const { files } = await fetchClient.get(`/videos/${VIMEO_ID}`)
 
-      const { files } = response
-
-      const url = files[1].link
+      // const url = files[1].link
 
       await makeDirectory()
 
+      const { config } = RNFetchBlob
+
       const name = `${video.title.split(' ').join('_')}`
-      const fileName = `${name}.mp4`
+      const filePath = `${
+        Platform.OS === 'android' ? DownloadDirectoryPath : DocumentDirectoryPath
+      }/${DIRECTORY_NAME}/${name}.mp4`
 
       const options = Platform.select({
         android: {
@@ -115,43 +121,48 @@ const Home = () => {
             notification: true,
             mime: 'video/mp4',
             description: `${name}`,
-            path: `${DownloadDirectoryPath}/${DIRECTORY_NAME}/${fileName}`
+            path: filePath
           },
           fileCache: true
         },
         ios: {
           fileCache: true,
-          path: `${DocumentDirectoryPath}/${DIRECTORY_NAME}/${fileName}`
+          path: filePath
         }
       })
 
-      RNFetchBlob.config(options)
-        .fetch('GET', url)
-        .then(response => {
-          console.log(response)
-          if (Platform.OS === 'android') {
-            RNFetchBlob.android.actionViewIntent(response.path(), 'video/mp4')
-          }
+      const { path } = await config(options).fetch('GET', videoUrl)
 
-          if (Platform.OS === 'ios') {
-            RNFetchBlob.ios.openDocument(response.data)
-          }
-        })
-        .catch(error => console.log(error))
+      const keys = virgilCrypto.generateKeys()
+
+      await virgilCrypto.encryptFile({
+        inputPath: path(),
+        outputPath: filePath,
+        publicKeys: keys.publicKey
+      })
     } catch (error) {
       console.log(error)
     }
   }
 
   useEffect(() => {
-    async function loadContent() {
+    ;(async () => {
+      const [[, storedPrivateKey], [, storedPublicKey]] = await AsyncStorage.multiGet([
+        ASYNC_STORAGE_PRIVATE_KEY,
+        ASYNC_STORAGE_PUBLIC_KEY
+      ])
+
+      if (!storedPrivateKey && !storedPublicKey) {
+        await generateKeys()
+      } else {
+        setPublicKey(JSON.parse(storedPublicKey))
+      }
+
       await requestPermission()
       await authenticate()
       fetchVideo()
-    }
-
-    loadContent()
-  }, [])
+    })()
+  }, [setPublicKey])
 
   return !isLoading ? (
     <Thumbnail
