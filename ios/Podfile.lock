@@ -270,6 +270,24 @@ PODS:
     - React-Core
   - RNScreens (2.17.1):
     - React-Core
+  - RNVirgilCrypto (0.6.1):
+    - React
+    - VirgilCrypto (= 5.3.0)
+    - VirgilCryptoFoundation (= 0.12.0)
+    - VirgilCryptoPythia (= 0.12.0)
+  - VirgilCrypto (5.3.0):
+    - VirgilCryptoFoundation (~> 0.12.0)
+  - VirgilCryptoFoundation (0.12.0):
+    - VSCCrypto/Common (= 0.12.0)
+    - VSCCrypto/Foundation (= 0.12.0)
+  - VirgilCryptoPythia (0.12.0):
+    - VirgilCryptoFoundation (= 0.12.0)
+    - VSCCrypto/Common (= 0.12.0)
+    - VSCCrypto/Foundation (= 0.12.0)
+    - VSCCrypto/Pythia (= 0.12.0)
+  - VSCCrypto/Common (0.12.0)
+  - VSCCrypto/Foundation (0.12.0)
+  - VSCCrypto/Pythia (0.12.0)
   - Yoga (1.14.0)
 
 DEPENDENCIES:
@@ -311,11 +329,16 @@ DEPENDENCIES:
   - RNGestureHandler (from `../node_modules/react-native-gesture-handler`)
   - RNReanimated (from `../node_modules/react-native-reanimated`)
   - RNScreens (from `../node_modules/react-native-screens`)
+  - RNVirgilCrypto (from `../node_modules/react-native-virgil-crypto`)
   - Yoga (from `../node_modules/react-native/ReactCommon/yoga`)
 
 SPEC REPOS:
   trunk:
     - boost-for-react-native
+    - VirgilCrypto
+    - VirgilCryptoFoundation
+    - VirgilCryptoPythia
+    - VSCCrypto
 
 EXTERNAL SOURCES:
   DoubleConversion:
@@ -390,6 +413,8 @@ EXTERNAL SOURCES:
     :path: "../node_modules/react-native-reanimated"
   RNScreens:
     :path: "../node_modules/react-native-screens"
+  RNVirgilCrypto:
+    :path: "../node_modules/react-native-virgil-crypto"
   Yoga:
     :path: "../node_modules/react-native/ReactCommon/yoga"
 
@@ -431,8 +456,13 @@ SPEC CHECKSUMS:
   RNGestureHandler: 5e58135436aacc1c5d29b75547d3d2b9430d052c
   RNReanimated: e03f7425cb7a38dcf1b644d680d1bfc91c3337ad
   RNScreens: b6c9607e6fe47c1b6e2f1910d2acd46dd7ecea3a
+  RNVirgilCrypto: f544b54e63a0d0466c81e630d39f56764354853c
+  VirgilCrypto: c2831582c5230eeb2adba2365336c768cd6d8c59
+  VirgilCryptoFoundation: 79f23a7ab6db642268d31bc63b0cf54db416f089
+  VirgilCryptoPythia: 4234b6f84de6fd2448faf6628ecdce84f43650a4
+  VSCCrypto: e2c8df89e0dc348c2713554f6a2c8864e1cf412d
   Yoga: 4bd86afe9883422a7c4028c00e34790f560923d6
 
-PODFILE CHECKSUM: dc3db10829125dd79cfab518f965b52af7ffc15e
+PODFILE CHECKSUM: 748b73bb8a593e05b6caadc81b032cd58e62ee9a
 
 COCOAPODS: 1.10.0
