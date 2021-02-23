@@ -49,7 +49,6 @@ const Home = () => {
       setIsLoading(true)
 
       const { data } = await axios.get(`https://player.vimeo.com/video/${VIMEO_ID}/config`)
-      console.log(data)
       const { video, request, user } = data
 
       setThumnbail(video?.thumbs['640'])
