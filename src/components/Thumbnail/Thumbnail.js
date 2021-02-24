@@ -1,14 +1,12 @@
 import React from 'react'
-import { View, Text, ImageBackground, StyleSheet, TouchableOpacity } from 'react-native'
+import { View, Text, Image, StyleSheet, TouchableOpacity } from 'react-native'
 import PropTypes from 'prop-types'
 
 const Thumbnail = ({ backgroundImage, mainAction, secondAction, ...props }) => {
   return (
     <View style={styles.container}>
       <TouchableOpacity onPress={mainAction}>
-        <ImageBackground source={{ uri: backgroundImage }} style={styles.image}>
-          <Text style={styles.label}>Play</Text>
-        </ImageBackground>
+        <Image source={{ uri: backgroundImage }} style={styles.image} />
       </TouchableOpacity>
 
       <TouchableOpacity onPress={secondAction} style={styles.downloadButton}>
@@ -24,16 +22,8 @@ const styles = StyleSheet.create({
     flexDirection: 'column'
   },
   image: {
-    alignItems: 'center',
-    justifyContent: 'center',
     height: 200,
     width: '100%'
-  },
-  label: {
-    color: '#f00',
-    fontSize: 15,
-    fontWeight: '700',
-    textTransform: 'uppercase'
   },
   downloadButton: {
     alignItems: 'center',
