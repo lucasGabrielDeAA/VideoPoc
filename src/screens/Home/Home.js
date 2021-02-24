@@ -48,15 +48,18 @@ const Home = () => {
     try {
       setIsLoading(true)
 
-      const { data } = await axios.get(`https://player.vimeo.com/video/${VIMEO_ID}/config`)
-      const { video, request, user } = data
+      const { pictures, ...rest } = await fetchClient.get(`/videos/${VIMEO_ID}`)
 
-      setThumnbail(video?.thumbs['640'])
-      setVideo(video)
-      setVideoUrl(
-        request?.files?.hls?.cdns[request?.files?.hls?.default_cdn]?.url ||
-          request?.files?.progressive?.[0]?.url
-      )
+      // const response = await axios.get(`https://player.vimeo.com/video/${VIMEO_ID}/config`)
+      // console.log(response)
+      // const { video, request, user } = data
+
+      setThumnbail(pictures?.sizes[3]?.link_with_play_button)
+      // setVideo(video)
+      // setVideoUrl(
+      //   request?.files?.hls?.cdns[request?.files?.hls?.default_cdn]?.url ||
+      //     request?.files?.progressive?.[0]?.url
+      // )
     } catch (error) {
       console.log(`Error ${error}`)
     } finally {
